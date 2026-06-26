@@ -5,6 +5,10 @@ pub async fn show_window<R: Runtime>(_app_handle: AppHandle<R>, window: WebviewW
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
+
+    // Re-apply stickiness in case a previous hide/show or window manager reset it,
+    // mirroring the macOS panel re-applying its collection behavior on show.
+    let _ = window.set_visible_on_all_workspaces(true);
 }
 
 #[command]
