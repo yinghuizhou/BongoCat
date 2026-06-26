@@ -42,8 +42,7 @@ pub fn platform(
 
     panel.set_collection_behavior(
         CollectionBehavior::new()
-            .stationary()
-            .move_to_active_space()
+            .can_join_all_spaces()
             .full_screen_auxiliary()
             .into(),
     );
