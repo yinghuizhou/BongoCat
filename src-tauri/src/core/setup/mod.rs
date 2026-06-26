@@ -24,7 +24,12 @@ pub fn default(
     preference_window: WebviewWindow,
 ) {
     #[cfg(debug_assertions)]
-    main_window.open_devtools();
+    if matches!(
+        std::env::var("BONGO_DEVTOOLS").as_deref(),
+        Ok("1") | Ok("true")
+    ) {
+        main_window.open_devtools();
+    }
 
     platform(app_handle, main_window.clone(), preference_window.clone());
 }
