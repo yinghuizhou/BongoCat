@@ -1,3 +1,4 @@
+use crate::MAIN_WINDOW_LABEL;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::thread;
@@ -10,32 +11,46 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 static TOPMOST_RUNNING: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 
-/// Pin the window to every virtual desktop so the pet stays visible after the
-/// user switches desktops. Mirrors macOS `can_join_all_spaces`.
+/// Pin the main window to every virtual desktop so the pet stays visible after
+/// the user switches desktops. Mirrors macOS `can_join_all_spaces`.
 ///
 /// `winvd` requires Windows 11 24H2+; on older builds the call fails and we keep
 /// the previous behavior (window only on the current desktop) instead of crashing.
-pub fn pin_to_all_desktops<R: Runtime>(window: &WebviewWindow<R>) {
+///
+/// The pinning runs on the main thread because `winvd` caches its COM proxies in
+/// thread-local storage and dislikes being driven from arbitrary async worker
+/// threads; this keeps every call on a single, stable thread.
+pub fn pin_to_all_desktops<R: Runtime>(app_handle: &AppHandle<R>, window: &WebviewWindow<R>) {
+    if window.label() != MAIN_WINDOW_LABEL {
+        return;
+    }
+
     let Ok(hwnd) = window.hwnd() else { return };
 
-    // `tauri`/`windows` (0.61) and `winvd` (windows 0.58) use different `windows`
-    // crate versions whose `HWND` are distinct types, so rebuild the handle from
-    // its raw pointer for the type `winvd::pin_window` expects.
-    let winvd_hwnd = windows_winvd::Win32::Foundation::HWND(hwnd.0);
+    // Carry the handle as `isize` so the closure stays `Send` (raw pointers are
+    // not), matching how `set_always_on_top` moves the HWND onto another thread.
+    let raw_hwnd = hwnd.0 as isize;
 
-    if let Err(error) = winvd::pin_window(winvd_hwnd) {
-        eprintln!("Failed to pin window to all virtual desktops: {error:?}");
-    }
+    let _ = app_handle.run_on_main_thread(move || {
+        // `tauri`/`windows` (0.61) and `winvd` (windows 0.58) use different
+        // `windows` crate versions whose `HWND` are distinct types, so rebuild
+        // the handle for the type `winvd::pin_window` expects.
+        let winvd_hwnd = windows_winvd::Win32::Foundation::HWND(raw_hwnd as *mut _);
+
+        if let Err(error) = winvd::pin_window(winvd_hwnd) {
+            log::warn!("Failed to pin window to all virtual desktops: {error:?}");
+        }
+    });
 }
 
 #[command]
-pub async fn show_window<R: Runtime>(_app_handle: AppHandle<R>, window: WebviewWindow<R>) {
+pub async fn show_window<R: Runtime>(app_handle: AppHandle<R>, window: WebviewWindow<R>) {
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
 
     // Re-apply pinning in case the window was recreated or unpinned.
-    pin_to_all_desktops(&window);
+    pin_to_all_desktops(&app_handle, &window);
 }
 
 #[command]

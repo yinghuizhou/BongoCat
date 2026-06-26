@@ -410,6 +410,7 @@ version = "1.1.0"
 dependencies = [
  "fs_extra",
  "gilrs",
+ "log",
  "rdev",
  "serde",
  "serde_json",
@@ -5217,6 +5218,7 @@ dependencies = [
 name = "tauri-plugin-custom-window"
 version = "0.1.0"
 dependencies = [
+ "log",
  "serde",
  "tauri",
  "tauri-nspanel",

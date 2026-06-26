@@ -1,3 +1,4 @@
+use crate::MAIN_WINDOW_LABEL;
 use tauri::{AppHandle, Runtime, WebviewWindow, command};
 
 #[command]
@@ -6,9 +7,15 @@ pub async fn show_window<R: Runtime>(_app_handle: AppHandle<R>, window: WebviewW
     let _ = window.unminimize();
     let _ = window.set_focus();
 
-    // Re-apply stickiness in case a previous hide/show or window manager reset it,
-    // mirroring the macOS panel re-applying its collection behavior on show.
-    let _ = window.set_visible_on_all_workspaces(true);
+    // Only the pet (main) window should span every workspace; the preference
+    // window must stay on the current one. Re-apply stickiness on show in case a
+    // previous hide/show or the window manager reset it, mirroring the macOS
+    // panel re-applying its collection behavior on show.
+    if window.label() == MAIN_WINDOW_LABEL {
+        if let Err(error) = window.set_visible_on_all_workspaces(true) {
+            log::warn!("Failed to set window visible on all workspaces: {error}");
+        }
+    }
 }
 
 #[command]

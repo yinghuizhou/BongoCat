@@ -10,6 +10,6 @@ pub fn platform(
     // no-op on most Wayland compositors, where stickiness must be configured
     // in the desktop environment itself.
     if let Err(error) = main_window.set_visible_on_all_workspaces(true) {
-        eprintln!("Failed to set window visible on all workspaces: {error}");
+        log::warn!("Failed to set window visible on all workspaces: {error}");
     }
 }
