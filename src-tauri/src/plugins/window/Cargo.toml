@@ -10,6 +10,7 @@ links = "tauri-plugin-custom-window"
 [dependencies]
 tauri.workspace = true
 serde.workspace = true
+log.workspace = true
 
 [build-dependencies]
 tauri-plugin.workspace = true
@@ -19,3 +20,8 @@ tauri-nspanel.workspace = true
 
 [target."cfg(target_os = \"windows\")".dependencies]
 windows.workspace = true
+winvd.workspace = true
+# `winvd` exposes its API through the `windows` 0.58 `HWND` type, which is a
+# distinct type from the project-wide `windows` 0.61. Pull 0.58 in under an alias
+# solely to build the handle value `winvd::pin_window` expects.
+windows_winvd = { package = "windows", version = "0.58", features = ["Win32_Foundation"] }

@@ -3,13 +3,19 @@ use tauri::{AppHandle, WebviewWindow};
 #[cfg(target_os = "macos")]
 mod macos;
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+mod windows;
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub mod common;
 
 #[cfg(target_os = "macos")]
 pub use macos::*;
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+pub use windows::*;
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub use common::*;
 
 pub fn default(
@@ -18,7 +24,12 @@ pub fn default(
     preference_window: WebviewWindow,
 ) {
     #[cfg(debug_assertions)]
-    main_window.open_devtools();
+    if matches!(
+        std::env::var("BONGO_DEVTOOLS").as_deref(),
+        Ok("1") | Ok("true")
+    ) {
+        main_window.open_devtools();
+    }
 
     platform(app_handle, main_window.clone(), preference_window.clone());
 }

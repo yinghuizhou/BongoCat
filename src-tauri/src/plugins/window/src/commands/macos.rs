@@ -13,6 +13,15 @@ fn is_main_window<R: Runtime>(window: &WebviewWindow<R>) -> bool {
     window.label() == MAIN_WINDOW_LABEL
 }
 
+/// Collection behavior that keeps the panel visible across all Spaces and on top
+/// of other apps' full-screen Spaces. Single source of truth, kept in sync with
+/// the initialization in `core::setup::macos`.
+fn all_spaces_collection_behavior() -> CollectionBehavior {
+    CollectionBehavior::new()
+        .can_join_all_spaces()
+        .full_screen_auxiliary()
+}
+
 fn set_macos_panel<R: Runtime>(
     app_handle: &AppHandle<R>,
     window: &WebviewWindow<R>,
@@ -27,24 +36,10 @@ fn set_macos_panel<R: Runtime>(
                     MacOSPanelStatus::Show => {
                         panel.show();
 
-                        panel.set_collection_behavior(
-                            CollectionBehavior::new()
-                                .stationary()
-                                .can_join_all_spaces()
-                                .full_screen_auxiliary()
-                                .into(),
-                        );
+                        panel.set_collection_behavior(all_spaces_collection_behavior().into());
                     }
                     MacOSPanelStatus::Hide => {
                         panel.hide();
-
-                        panel.set_collection_behavior(
-                            CollectionBehavior::new()
-                                .stationary()
-                                .move_to_active_space()
-                                .full_screen_auxiliary()
-                                .into(),
-                        );
                     }
                     MacOSPanelStatus::SetAlwaysOnTop(always_on_top) => {
                         if always_on_top {
